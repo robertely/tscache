@@ -2,29 +2,29 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
-	//"sync"
 )
 
-type Point struct {
+type point struct {
 	Value float64
 	Time  time.Time
-	Next  *Point
+	Next  *point
 }
 
-func (point *Point) Update(value float64, timestamp time.Time) {
+func (point *point) Update(value float64, timestamp time.Time) {
 	// should...I be locking this?
 	point.Value = value
 	point.Time = timestamp
 }
 
-// Circular singly linked list
+// Collection is a Circular Singly Linked List implimentation that contains time series data.
 type Collection struct {
-	Head   *Point
-	Tail   *Point
-	Length uint64
-	Limit  uint64
-	// mux   sync.Mutex
+	head     *point
+	tail     *point
+	length   uint64
+	capacity uint64
+	mux      sync.Mutex
 	// BucketInterval uint64
 }
 
@@ -33,43 +33,58 @@ func (collection *Collection) Write(value float64, timestamp time.Time) {
 	if timestamp.IsZero() {
 		timestamp = time.Now()
 	}
+
+	// Lock before we touch any thing.
+	// collection.mux.Lock()
+	// defer collection.mux.Unlock()
+
 	// So there are actually two states this can be in. "Growing and Full."
 	// When "Growing" it acts like a linked list.
 	// When "Full" It acts more like a ring buffer.
-	if collection.Length < collection.Limit {
+	if collection.length < collection.capacity {
 		// Create our new point.
-		newpoint := &Point{value, timestamp, nil}
+		newpoint := &point{value, timestamp, nil}
 		// First entry
-		if collection.Length == 0 {
+		if collection.length == 0 {
 			newpoint.Next = newpoint
-			collection.Head = newpoint
-			collection.Tail = newpoint
+			collection.head = newpoint
+			collection.tail = newpoint
 		} else {
 			// Growing...
-			newpoint.Next = collection.Tail
-			collection.Head.Next = newpoint
-			collection.Head = newpoint
+			newpoint.Next = collection.tail
+			collection.head.Next = newpoint
+			collection.head = newpoint
 		}
-		collection.Length++
+		collection.length++
 	} else {
 		// Bump tail ahead one
-		collection.Tail = collection.Tail.Next
+		collection.tail = collection.tail.Next
 		// Update the old tail
-		collection.Head.Next.Update(value, timestamp)
+		collection.head.Next.Update(value, timestamp)
 		// Make the old tail the new head.
-		collection.Head = collection.Head.Next
+		collection.head = collection.head.Next
 	}
 }
 
 func (collection *Collection) Read(timestamp time.Time) {
 	//start at....tail
-	// scan.....
+	// scan.....head
 	// return &
 }
 
-func (collection *Collection) PrintAll() {
-	currpoint := collection.Tail
-	lastpoint := collection.Head
+// Length returns length of a Collection
+func (collection *Collection) Length() uint64 {
+	return collection.length
+}
+
+// Capacity returns the capacity of a Collection
+func (collection *Collection) Capacity() uint64 {
+	return collection.capacity
+}
+
+func (collection *Collection) printAll() {
+	currpoint := collection.tail
+	lastpoint := collection.head
 	for currpoint != lastpoint {
 		fmt.Println(*currpoint)
 		currpoint = currpoint.Next
@@ -79,12 +94,12 @@ func (collection *Collection) PrintAll() {
 
 func main() {
 	// nil head, nil tail, length of 0, max length of 15
-	x := Collection{nil, nil, 0, 15}
-	for i := 0; i < 22; i++ {
-		x.Write(float64(i), time.Unix(0, 0))
+	x := Collection{head: nil, tail: nil, length: 0, capacity: 1000, mux: sync.Mutex{}}
+	for i := 0; i < 1000000000; i++ {
+		x.Write(float64(i), time.Time{})
 	}
 
-	x.PrintAll()
+	// x.printAll()
 	fmt.Println(x)
 
 }
