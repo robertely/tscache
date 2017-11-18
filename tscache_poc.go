@@ -2,18 +2,18 @@ package main
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
 type point struct {
-	Value float64
+	Value interface{}
 	Time  time.Time
 	Next  *point
 }
 
-func (point *point) Update(value float64, timestamp time.Time) {
+func (point *point) Update(value interface{}, timestamp time.Time) {
 	// should...I be locking this?
+	// bruuuup... DOnt thIK about it...just jst dont think about it mooooorrrty
 	point.Value = value
 	point.Time = timestamp
 }
@@ -24,8 +24,8 @@ type Collection struct {
 	tail     *point
 	length   uint64
 	capacity uint64
-	mux      sync.Mutex
-	// BucketInterval uint64
+	// index map...
+	// indexinterval uint64
 }
 
 func (collection *Collection) Write(value float64, timestamp time.Time) {
@@ -33,10 +33,6 @@ func (collection *Collection) Write(value float64, timestamp time.Time) {
 	if timestamp.IsZero() {
 		timestamp = time.Now()
 	}
-
-	// Lock before we touch any thing.
-	// collection.mux.Lock()
-	// defer collection.mux.Unlock()
 
 	// So there are actually two states this can be in. "Growing and Full."
 	// When "Growing" it acts like a linked list.
@@ -66,12 +62,6 @@ func (collection *Collection) Write(value float64, timestamp time.Time) {
 	}
 }
 
-func (collection *Collection) Read(timestamp time.Time) {
-	//start at....tail
-	// scan.....head
-	// return &
-}
-
 // Length returns length of a Collection
 func (collection *Collection) Length() uint64 {
 	return collection.length
@@ -80,6 +70,10 @@ func (collection *Collection) Length() uint64 {
 // Capacity returns the capacity of a Collection
 func (collection *Collection) Capacity() uint64 {
 	return collection.capacity
+}
+
+func (collection *Collection) Read(start time.Time, end time.Time) {
+	//uhhhh
 }
 
 func (collection *Collection) printAll() {
@@ -93,13 +87,13 @@ func (collection *Collection) printAll() {
 }
 
 func main() {
-	// nil head, nil tail, length of 0, max length of 15
-	x := Collection{head: nil, tail: nil, length: 0, capacity: 1000, mux: sync.Mutex{}}
-	for i := 0; i < 1000000000; i++ {
+	x := Collection{head: nil, tail: nil, length: 0, capacity: 1000}
+
+	for i := 0; i < 1000000; i++ {
 		x.Write(float64(i), time.Time{})
 	}
 
-	// x.printAll()
+	x.printAll()
 	fmt.Println(x)
 
 }
