@@ -28,6 +28,7 @@ type Collection struct {
 	// indexinterval uint64
 }
 
+//  i think there may be an obo in here...
 func (collection *Collection) Write(value float64, timestamp time.Time) {
 	// If passed 0 use `now` for timestamp
 	if timestamp.IsZero() {
@@ -72,6 +73,36 @@ func (collection *Collection) Capacity() uint64 {
 	return collection.capacity
 }
 
+func (collection *Collection) search(start time.Time, end time.Time) (ResultTail, ResultHead *point) {
+	ResultTail = nil
+	ResultHead = nil
+
+	// validate here.
+	if start.After(end) {
+		return
+	}
+	if start.After(collection.head.Time) {
+		return
+	}
+
+	// Find start point
+	if start.Before(collection.tail.Time) {
+		ResultTail = collection.tail
+	} else {
+		// find the real start
+		curr := collection.tail
+		for start.After(curr.Time) || start.Equal(curr.Time) {
+			ResultTail = curr
+			curr = curr.Next
+		}
+	}
+	// Find end point
+	if end.After(collection.head.Time) {
+		ResultHead = collection.head
+	} // find the real end
+	return
+}
+
 func (collection *Collection) Read(start time.Time, end time.Time) {
 	//uhhhh
 }
@@ -80,20 +111,22 @@ func (collection *Collection) printAll() {
 	currpoint := collection.tail
 	lastpoint := collection.head
 	for currpoint != lastpoint {
+		// fmt.Println(currpoint.Time.UnixNano(), ":", currpoint.Value)
 		fmt.Println(*currpoint)
 		currpoint = currpoint.Next
 	}
-	fmt.Println(*currpoint)
 }
 
 func main() {
 	x := Collection{head: nil, tail: nil, length: 0, capacity: 1000}
 
-	for i := 0; i < 1000000; i++ {
-		x.Write(float64(i), time.Time{})
+	for i := int64(10); i <= 20; i++ {
+		x.Write(float64(i), time.Unix(i, 0))
 	}
 
 	x.printAll()
-	fmt.Println(x)
+	fmt.Println("XXXXXXXXXX")
+	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
+	fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
 
 }
