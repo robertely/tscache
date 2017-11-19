@@ -100,7 +100,6 @@ func (collection *Collection) search(start time.Time, end time.Time) (ResultTail
 	if end.After(collection.head.Time) {
 		ResultHead = collection.head
 	} // find the real end
-	fmt.println("DONE")
 	return
 }
 
