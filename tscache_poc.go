@@ -13,8 +13,6 @@ type point struct {
 }
 
 func (point *point) Update(value interface{}, timestamp time.Time) {
-	// should...I be locking this?
-	// bruuuup... DOnt thIK about it...just jst dont think about it mooooorrrty
 	point.Value = value
 	point.Time = timestamp
 }
