@@ -12,7 +12,7 @@ type point struct {
 	Next  *point
 }
 
-func (point *point) Update(value interface{}, timestamp time.Time) {
+func (point *point) update(value interface{}, timestamp time.Time) {
 	point.Value = value
 	point.Time = timestamp
 }
