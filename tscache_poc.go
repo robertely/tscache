@@ -59,7 +59,7 @@ func (collection *Collection) Write(value interface{}, timestamp time.Time) {
 		// Bump tail ahead one
 		collection.tail = collection.tail.Next
 		// Update the old tail
-		collection.head.Next.Update(value, timestamp)
+		collection.head.Next.update(value, timestamp)
 		// Make the old tail the new head.
 		collection.head = collection.head.Next
 	}
