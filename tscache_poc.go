@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -24,17 +25,20 @@ type Collection struct {
 	tail     *point
 	length   uint64
 	capacity uint64
+	mutex    sync.Mutex
 	// index map...
 	// indexinterval uint64
 }
 
 //  i think there may be an obo in here...
-func (collection *Collection) Write(value float64, timestamp time.Time) {
+func (collection *Collection) Write(value interface{}, timestamp time.Time) {
+	collection.mutex.Lock()
+	defer collection.mutex.Unlock()
+
 	// If passed 0 use `now` for timestamp
 	if timestamp.IsZero() {
 		timestamp = time.Now()
 	}
-
 	// So there are actually two states this can be in. "Growing and Full."
 	// When "Growing" it acts like a linked list.
 	// When "Full" It acts more like a ring buffer.
@@ -98,7 +102,7 @@ func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHe
 	return
 }
 
-func (collection *Collection) Read(start time.Time, end time.Time) {
+func (collection *Collection) Read(start *point, end *point) {
 	//uhhhh
 }
 
@@ -113,18 +117,19 @@ func (collection *Collection) printAll() {
 }
 
 func main() {
-	x := Collection{head: nil, tail: nil, length: 0, capacity: 1000}
+	x := Collection{head: nil, tail: nil, length: 0, capacity: 50000000}
 
-	for i := int64(10); i <= 20; i++ {
-		x.Write(float64(i), time.Unix(i, 0))
+	for i := int64(0); i <= 50000000; i++ {
+		x.Write(i, time.Now())
 	}
-	x.Write(20.800000000, time.Unix(20, 800000000))
 
-	x.printAll()
 	fmt.Println("XXXXXXXXXX")
-	fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
-	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
-	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
-	fmt.Println(x.search(time.Unix(12, 0), time.Unix(20, 800000000)))
+	// x.printAll()
+	// x.Write(20.800000000, time.Unix(20, 800000000))
+	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
+	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
+	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
+	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(20, 800000000)))
+	time.Sleep(time.Second * 30)
 
 }
