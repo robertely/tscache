@@ -73,11 +73,8 @@ func (collection *Collection) Capacity() uint64 {
 	return collection.capacity
 }
 
-func (collection *Collection) search(start time.Time, end time.Time) (ResultTail, ResultHead *point) {
-	ResultTail = nil
-	ResultHead = nil
-
-	// validate here.
+func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *point) {
+	// Validation
 	if start.After(end) {
 		return
 	}
@@ -86,20 +83,18 @@ func (collection *Collection) search(start time.Time, end time.Time) (ResultTail
 	}
 
 	// Find start point
-	if start.Before(collection.tail.Time) {
-		ResultTail = collection.tail
-	} else {
-		// find the real start
-		curr := collection.tail
-		for start.After(curr.Time) || start.Equal(curr.Time) {
-			ResultTail = curr
-			curr = curr.Next
-		}
+	ResultTail = collection.tail
+	for start.After(ResultTail.Time) {
+		ResultTail = ResultTail.Next
 	}
+
 	// Find end point
-	if end.After(collection.head.Time) {
-		ResultHead = collection.head
-	} // find the real end
+	ResultHead = ResultTail
+	for end.After(ResultHead.Time) && ResultHead.Next != collection.tail {
+		fmt.Println(ResultHead.Time)
+		ResultHead = ResultHead.Next
+	}
+
 	return
 }
 
@@ -123,10 +118,13 @@ func main() {
 	for i := int64(10); i <= 20; i++ {
 		x.Write(float64(i), time.Unix(i, 0))
 	}
+	x.Write(20.800000000, time.Unix(20, 800000000))
 
 	x.printAll()
 	fmt.Println("XXXXXXXXXX")
-	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
 	fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
+	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
+	fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
+	fmt.Println(x.search(time.Unix(12, 0), time.Unix(20, 800000000)))
 
 }
