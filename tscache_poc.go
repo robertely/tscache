@@ -6,29 +6,27 @@ import (
 	"time"
 )
 
-type point struct {
+type node struct {
 	Value interface{}
 	Time  time.Time
-	Next  *point
+	Next  *node
 }
 
-func (point *point) update(value interface{}, timestamp time.Time) {
-	point.Value = value
-	point.Time = timestamp
+func (node *node) update(value interface{}, timestamp time.Time) {
+	node.Value = value
+	node.Time = timestamp
 }
 
 // Collection is a Circular Singly Linked List implimentation that contains time series data.
 type Collection struct {
-	head     *point
-	tail     *point
+	head     *node
+	tail     *node
 	length   uint64
 	capacity uint64
 	mutex    sync.Mutex
-	// index map...
-	// indexinterval uint64
 }
 
-//  i think there may be an obo in here...
+//  Writes a node into a collection as the newest node(head.)
 func (collection *Collection) Write(value interface{}, timestamp time.Time) {
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
@@ -41,18 +39,18 @@ func (collection *Collection) Write(value interface{}, timestamp time.Time) {
 	// When "Growing" it acts like a linked list.
 	// When "Full" It acts more like a ring buffer.
 	if collection.length < collection.capacity {
-		// Create our new point.
-		newpoint := &point{value, timestamp, nil}
+		// Create our new node.
+		newnode := &node{value, timestamp, nil}
 		// First entry
 		if collection.length == 0 {
-			newpoint.Next = newpoint
-			collection.head = newpoint
-			collection.tail = newpoint
+			newnode.Next = newnode
+			collection.head = newnode
+			collection.tail = newnode
 		} else {
 			// Growing...
-			newpoint.Next = collection.tail
-			collection.head.Next = newpoint
-			collection.head = newpoint
+			newnode.Next = collection.tail
+			collection.head.Next = newnode
+			collection.head = newnode
 		}
 		collection.length++
 	} else {
@@ -75,7 +73,7 @@ func (collection *Collection) Capacity() uint64 {
 	return collection.capacity
 }
 
-func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *point) {
+func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
 	// Validation
 	if start.After(end) {
 		return
@@ -84,50 +82,65 @@ func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHe
 		return
 	}
 
-	// Find start point
+	// Find start node
 	ResultTail = collection.tail
 	for start.After(ResultTail.Time) {
 		ResultTail = ResultTail.Next
 	}
 
-	// Find end point
+	// Find end node
+	// breaks with fractional seconds....
 	ResultHead = ResultTail
 	for end.After(ResultHead.Time) && ResultHead.Next != collection.tail {
-		fmt.Println(ResultHead.Time)
 		ResultHead = ResultHead.Next
+		length++
 	}
-
 	return
 }
 
-func (collection *Collection) Read(start *point, end *point) {
-	//uhhhh
+// Point is the external version of node{}
+type Point struct {
+	Value interface{}
+	Time  time.Time
 }
 
+// Can i return [length]Point ?
+func (collection *Collection) Read(start, end *node, length uint) (result []Point) {
+	currnode := start // I guess this is redundant, but what else would i call "start" ?
+	for currnode != end.Next {
+		result = append(result, Point{Value: currnode.Value, Time: currnode.Time})
+		currnode = currnode.Next
+	}
+	return
+}
+
+// weird things happen in circles..
 func (collection *Collection) printAll() {
-	currpoint := collection.tail
-	lastpoint := collection.head
-	for currpoint != lastpoint {
-		// fmt.Println(currpoint.Time.UnixNano(), ":", currpoint.Value)
-		fmt.Println(*currpoint)
-		currpoint = currpoint.Next
+	currnode := collection.tail
+	fmt.Println(*currnode)
+	for currnode != collection.head {
+		fmt.Println(*currnode.Next)
+		currnode = currnode.Next
 	}
 }
 
 func main() {
-	x := Collection{head: nil, tail: nil, length: 0, capacity: 50000000}
+	x := Collection{head: nil, tail: nil, length: 0, capacity: 50000}
 
-	for i := int64(0); i <= 50000000; i++ {
-		x.Write(i, time.Now())
+	for i := int64(1); i <= 50; i++ {
+		x.Write(i, time.Unix(i, 0))
 	}
 
 	fmt.Println("XXXXXXXXXX")
 	// x.printAll()
+	// fmt.Println(x)
 	// x.Write(20.800000000, time.Unix(20, 800000000))
 	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
-	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(20, 800000000)))
-	time.Sleep(time.Second * 30)
+	resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
+	fmt.Println(resStart, resEnd, length)
+
+	fmt.Println(x.Read(resStart, resEnd, length))
 
 }
