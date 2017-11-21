@@ -28,6 +28,7 @@ type Collection struct {
 
 //  Writes a node into a collection as the newest node(head.)
 func (collection *Collection) Write(value interface{}, timestamp time.Time) {
+	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
 
@@ -74,6 +75,10 @@ func (collection *Collection) Capacity() uint64 {
 }
 
 func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
+	// Aquire Lock
+	collection.mutex.Lock()
+	defer collection.mutex.Unlock()
+
 	// Validation
 	if start.After(end) {
 		return
@@ -106,6 +111,10 @@ type Point struct {
 
 // Can i return [length]Point ?
 func (collection *Collection) Read(start, end *node, length uint) (result []Point) {
+	// Aquire Lock
+	collection.mutex.Lock()
+	defer collection.mutex.Unlock()
+	// Build response
 	currnode := start // I guess this is redundant, but what else would i call "start" ?
 	for currnode != end.Next {
 		result = append(result, Point{Value: currnode.Value, Time: currnode.Time})
@@ -138,9 +147,9 @@ func main() {
 	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
-	resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
-	fmt.Println(resStart, resEnd, length)
+	// resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
 
-	fmt.Println(x.Read(resStart, resEnd, length))
-
+	for _, i := range x.Read(x.search(time.Unix(12, 0), time.Unix(20, 0))) {
+		fmt.Println(i)
+	}
 }
