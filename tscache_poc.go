@@ -21,9 +21,15 @@ func (node *node) update(value interface{}, timestamp time.Time) {
 type Collection struct {
 	head     *node
 	tail     *node
-	length   uint64
-	capacity uint64
+	length   int
+	capacity int
 	mutex    sync.Mutex
+}
+
+func NewCollection(capacity int) *Collection {
+	return &Collection{
+		capacity: capacity,
+	}
 }
 
 //  Writes a node into a collection as the newest node(head.)
@@ -65,12 +71,12 @@ func (collection *Collection) Write(value interface{}, timestamp time.Time) {
 }
 
 // Length returns length of a Collection
-func (collection *Collection) Length() uint64 {
+func (collection *Collection) Length() int {
 	return collection.length
 }
 
 // Capacity returns the capacity of a Collection
-func (collection *Collection) Capacity() uint64 {
+func (collection *Collection) Capacity() int {
 	return collection.capacity
 }
 
@@ -79,10 +85,15 @@ func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHe
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
 
+	if collection.head == nil {
+		return
+	}
+
 	// Validation
 	if start.After(end) {
 		return
 	}
+
 	if start.After(collection.head.Time) {
 		return
 	}
