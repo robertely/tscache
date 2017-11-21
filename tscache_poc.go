@@ -80,6 +80,7 @@ func (collection *Collection) Capacity() int {
 	return collection.capacity
 }
 
+// TODO: Not happy with this make do better
 func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
 	// Aquire Lock
 	collection.mutex.Lock()
@@ -111,6 +112,7 @@ func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHe
 		ResultHead = ResultHead.Next
 		length++
 	}
+	length++
 	return
 }
 
@@ -121,17 +123,19 @@ type Point struct {
 }
 
 // Can i return [length]Point ?
-func (collection *Collection) Read(start, end *node, length uint) (result []Point) {
+func (collection *Collection) Read(start, end *node, length uint) []Point {
 	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
+	// I guess this is redundant, but what else would i call "start" ?
+	currnode := start
 	// Build response
-	currnode := start // I guess this is redundant, but what else would i call "start" ?
-	for currnode != end.Next {
-		result = append(result, Point{Value: currnode.Value, Time: currnode.Time})
+	result := make([]Point, length)
+	for i := 0; currnode != end.Next; i++ {
+		result[i] = Point{Value: currnode.Value, Time: currnode.Time}
 		currnode = currnode.Next
 	}
-	return
+	return result
 }
 
 // weird things happen in circles..
@@ -147,19 +151,19 @@ func (collection *Collection) printAll() {
 func main() {
 	x := Collection{head: nil, tail: nil, length: 0, capacity: 50000}
 
-	for i := int64(1); i <= 50; i++ {
+	for i := int64(10); i <= 22; i++ {
 		x.Write(i, time.Unix(i, 0))
 	}
-
 	fmt.Println("XXXXXXXXXX")
-	// x.printAll()
+	x.printAll()
 	// fmt.Println(x)
 	// x.Write(20.800000000, time.Unix(20, 800000000))
 	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
 	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
-	// resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
-
+	resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
+	fmt.Println(resStart, resEnd, length)
+	fmt.Println("XXXXXXXXXX")
 	for _, i := range x.Read(x.search(time.Unix(12, 0), time.Unix(20, 0))) {
 		fmt.Println(i)
 	}
