@@ -4,45 +4,81 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestZeroLengthRead(t *testing.T) {
-	assert := require.New(t)
-
-	c := NewCollection(0)
-
-	head, tail, length := c.Search(time.Unix(12, 0), time.Unix(20, 0))
-	assert.Nil(head)
-	assert.Nil(tail)
-	assert.Zero(length)
+func TestUpdateNode(t *testing.T) {
+	n := node{0, time.Time{}, nil}
+	assert.Equal(t, n.Value, 0)
+	n.update(1, time.Time{})
+	assert.Equal(t, n.Value, 1)
 }
 
-func TestOneLengthSearch(t *testing.T) {
-	assert := require.New(t)
-
-	c := NewCollection(1)
-	c.Write(3.14, time.Now())
-
-	head, tail, length := c.Search(time.Unix(0, 0), time.Now())
-
-	assert.NotNil(head)
-	assert.NotNil(tail)
-	assert.Equal(int(1), int(length))
+func TestCreateCollection(t *testing.T) {
+	c := NewCollection(10)
+	assert.Equal(t, c.Capacity(), 10)
+	assert.Equal(t, c.Length(), 0)
 }
 
-func TestManySearch(t *testing.T) {
-	assert := require.New(t)
+func TestCollectionWrite(t *testing.T) {
+	c := NewCollection(3)
+	// Fill the collection
+	for i := 0; i < 3; i++ {
+		c.Write(i, time.Time{})
+		assert.Equal(t, i+1, c.Length(), "Failed to get Length")
+	}
+	// Overrun the collection
+	c.Write(4, time.Time{})
+	assert.Equal(t, 3, c.Length(), "Collection Overrun failed")
+	assert.Equal(t, 1, c.tail.Value, "Result length incorrect")
+	assert.Equal(t, 4, c.head.Value)
+}
 
-	c := NewCollection(5000)
-
-	for i := 0; i < c.Capacity(); i++ {
+func TestCollectionSearch(t *testing.T) {
+	c := NewCollection(10)
+	// Fill the collection
+	for i := 0; i < 15; i++ {
 		c.Write(i, time.Unix(int64(i), 0))
 	}
+	start, end, len := c.Search(time.Unix(8, 0), time.Unix(12, 0))
+	assert.Equal(t, 5, len, "Result length incorrect")
+	assert.Equal(t, 8, start.Value, "Result start value incorrect")
+	assert.Equal(t, 12, end.Value, "Result end value incorrect")
+}
 
-	head, tail, length := c.Search(time.Unix(0, 0), time.Now())
+func TestCollectionZeroSearch(t *testing.T) {
+	c := NewCollection(10)
+	// Fill the collection
+	for i := 0; i < 15; i++ {
+		c.Write(i, time.Unix(int64(i), 0))
+	}
+	start, end, len := c.Search(time.Time{}, time.Time{})
+	assert.Equal(t, 10, len, "Result length incorrect")
+	assert.Equal(t, 5, start.Value, "Result start value incorrect")
+	assert.Equal(t, 14, end.Value, "Result end value incorrect")
+}
 
-	assert.NotNil(head)
-	assert.NotNil(tail)
-	assert.Equal(int(5000), int(length))
+func TestCollectionZeroStartSearch(t *testing.T) {
+	c := NewCollection(10)
+	// Fill the collection
+	for i := 0; i < 15; i++ {
+		c.Write(i, time.Unix(int64(i), 0))
+	}
+	start, end, len := c.Search(time.Time{}, time.Unix(8, 0))
+	// c.PrintAll()
+	assert.Equal(t, 4, len, "Result length incorrect")
+	assert.Equal(t, 5, start.Value, "Result start value incorrect")
+	assert.Equal(t, 8, end.Value, "Result end value incorrect")
+}
+
+func TestCollectionZeroEndSearch(t *testing.T) {
+	c := NewCollection(10)
+	// Fill the collection
+	for i := 0; i < 15; i++ {
+		c.Write(i, time.Unix(int64(i), 0))
+	}
+	start, end, len := c.Search(time.Unix(8, 0), time.Time{})
+	assert.Equal(t, 7, len, "Result length incorrect")
+	assert.Equal(t, 8, start.Value, "Result start value incorrect")
+	assert.Equal(t, 14, end.Value, "Result end value incorrect")
 }

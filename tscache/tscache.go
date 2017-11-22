@@ -26,6 +26,7 @@ type Collection struct {
 	mutex    sync.Mutex
 }
 
+// NewCollection returns initialized Collection
 func NewCollection(capacity int) *Collection {
 	return &Collection{
 		capacity: capacity,
@@ -81,36 +82,57 @@ func (collection *Collection) Capacity() int {
 }
 
 // TODO: Not happy with this make do better
-func (collection *Collection) Search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
+// Search js jesus christ i dono
+func (collection *Collection) Search(start, end time.Time) (ResultTail, ResultHead *node, length int) {
 	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
 
 	// Validation
-	if start.After(end) {
+	// Range error
+	if start.After(end) && !end.IsZero() {
 		return
 	}
 
+	// Passed an empty collection?
 	if collection.head == nil {
 		return
 	}
 
+	// Range error
 	if start.After(collection.head.Time) {
+		return
+	}
+	// return Complete set
+	if start.IsZero() && end.IsZero() {
+		ResultHead = collection.head
+		ResultTail = collection.tail
+		length = collection.Length()
 		return
 	}
 
 	// Find start node
 	ResultTail = collection.tail
-	for start.After(ResultTail.Time) {
-		ResultTail = ResultTail.Next
+	if !start.IsZero() {
+		for start.After(ResultTail.Time) {
+			ResultTail = ResultTail.Next
+		}
 	}
 
 	// Find end node
-	// breaks with fractional seconds....
-	ResultHead = ResultTail
-	for end.After(ResultHead.Time) && ResultHead.Next != collection.tail {
-		ResultHead = ResultHead.Next
-		length++
+	// breaks with fractional seconds.... # THIS PART IS GROSS
+	if end.IsZero() {
+		ResultHead = ResultTail
+		for ResultHead.Next != collection.tail {
+			ResultHead = ResultHead.Next
+			length++
+		}
+	} else {
+		ResultHead = ResultTail
+		for end.After(ResultHead.Time) && ResultHead.Next != collection.tail {
+			ResultHead = ResultHead.Next
+			length++
+		}
 	}
 	length++
 	return
@@ -123,7 +145,7 @@ type Point struct {
 }
 
 // Can i return [length]Point ?
-func (collection *Collection) Read(start, end *node, length uint) []Point {
+func (collection *Collection) Read(start, end *node, length int) []Point {
 	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
