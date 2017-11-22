@@ -1,7 +1,6 @@
 package tscache
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -81,8 +80,8 @@ func (collection *Collection) Capacity() int {
 	return collection.capacity
 }
 
-// TODO: Not happy with this make do better
 // Search js jesus christ i dono
+// TODO: Not happy with this make do better
 func (collection *Collection) Search(start, end time.Time) (ResultTail, ResultHead *node, length int) {
 	// Aquire Lock
 	collection.mutex.Lock()
@@ -146,6 +145,9 @@ type Point struct {
 
 // Can i return [length]Point ?
 func (collection *Collection) Read(start, end *node, length int) []Point {
+	if length == 0 {
+		return []Point{}
+	}
 	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
@@ -158,14 +160,4 @@ func (collection *Collection) Read(start, end *node, length int) []Point {
 		currnode = currnode.Next
 	}
 	return result
-}
-
-// weird things happen in circles..
-func (collection *Collection) PrintAll() {
-	currnode := collection.tail
-	fmt.Println(*currnode)
-	for currnode != collection.head {
-		fmt.Println(*currnode.Next)
-		currnode = currnode.Next
-	}
 }
