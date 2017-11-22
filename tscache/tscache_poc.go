@@ -1,4 +1,4 @@
-package main
+package tscache
 
 import (
 	"fmt"
@@ -81,17 +81,17 @@ func (collection *Collection) Capacity() int {
 }
 
 // TODO: Not happy with this make do better
-func (collection *Collection) search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
+func (collection *Collection) Search(start, end time.Time) (ResultTail, ResultHead *node, length uint) {
 	// Aquire Lock
 	collection.mutex.Lock()
 	defer collection.mutex.Unlock()
 
-	if collection.head == nil {
+	// Validation
+	if start.After(end) {
 		return
 	}
 
-	// Validation
-	if start.After(end) {
+	if collection.head == nil {
 		return
 	}
 
@@ -139,32 +139,11 @@ func (collection *Collection) Read(start, end *node, length uint) []Point {
 }
 
 // weird things happen in circles..
-func (collection *Collection) printAll() {
+func (collection *Collection) PrintAll() {
 	currnode := collection.tail
 	fmt.Println(*currnode)
 	for currnode != collection.head {
 		fmt.Println(*currnode.Next)
 		currnode = currnode.Next
-	}
-}
-
-func main() {
-	x := Collection{head: nil, tail: nil, length: 0, capacity: 50000}
-
-	for i := int64(10); i <= 22; i++ {
-		x.Write(i, time.Unix(i, 0))
-	}
-	fmt.Println("XXXXXXXXXX")
-	x.printAll()
-	// fmt.Println(x)
-	// x.Write(20.800000000, time.Unix(20, 800000000))
-	// fmt.Println(x.search(time.Unix(12, 0), time.Unix(14, 0)))
-	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(14, 0)))
-	// fmt.Println(x.search(time.Unix(12, 800000000), time.Unix(100, 0)))
-	resStart, resEnd, length := x.search(time.Unix(12, 0), time.Unix(20, 0))
-	fmt.Println(resStart, resEnd, length)
-	fmt.Println("XXXXXXXXXX")
-	for _, i := range x.Read(x.search(time.Unix(12, 0), time.Unix(20, 0))) {
-		fmt.Println(i)
 	}
 }
